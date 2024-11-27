@@ -40,7 +40,7 @@ Please consider citing our papers if the project helps your research with the fo
 # Getting Started
 
 - [Installation](docs/INSTALL.md)
-- [Prepare Dataset](docs/INSTALL.md)
+- [Prepare Dataset](docs/DATA_PREP.md)
 - [Train and Open-Loop Eval](docs/TRAIN_EVAL.md)
 - [Closed-Loop Eval in CARLA](docs/EVAL_IN_CARLA.md)
 - [Convert Codes from Nuscenes to Bench2Drive](docs/CONVERT_GUIDE.md)
