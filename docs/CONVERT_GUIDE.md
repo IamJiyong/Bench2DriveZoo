@@ -1,6 +1,6 @@
 # Code Convert Guide
 
-This document outlines important considerations for migrating code based on nuscenes or other datasets to bench2drive.
+This document outlines important considerations for migrating code based on nuScenes or other datasets to Bench2Drive.
 
 ## Models
 
@@ -12,11 +12,11 @@ You can place the configs and scripts for each method in the `adzoo` . Utils of 
 
 ## Details of configs
 
-To create a config for the bench2drive dataset, note the following:
+To create a config for the Bench2Drive dataset, note the following:
 
-- We have included the bench2drive name-to-class mapping and evaluation settings directly in the config. You can use our settings or modify them as needed.
-- Unlike the 10 classes in nuscenes, we use 9 classes in bench2drive .
-- Methods like UniAD and VAD use 3 commands on nuscenes, while bench2drive uses 6 commands obtained from CARLA.
+- We have included the Bench2Drive name-to-class mapping and evaluation settings directly in the config. You can use our settings or modify them as needed.
+- Unlike the 10 classes in nuScenes, we use 9 classes in Bench2Drive .
+- Methods like UniAD and VAD use 3 commands on nuscenes, while Bench2Drive uses 6 commands obtained from CARLA.
 
 ## Dataset
 
