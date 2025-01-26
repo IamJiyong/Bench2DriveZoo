@@ -1,0 +1,14 @@
+{
+    "val": [
+        "mini/AccidentTwoWays_Town12_Route1444_Weather0",
+        "mini/Accident_Town03_Route156_Weather0",
+        "mini/ConstructionObstacle_Town05_Route68_Weather8",
+        "mini/ControlLoss_Town11_Route401_Weather11",
+        "mini/DynamicObjectCrossing_Town02_Route13_Weather6",
+        "mini/HardBreakRoute_Town01_Route30_Weather3",
+        "mini/OppositeVehicleTakingPriority_Town13_Route600_Weather2",
+        "mini/ParkedObstacle_Town10HD_Route371_Weather7",
+        "mini/VehicleTurningRoute_Town15_Route443_Weather1",
+        "mini/YieldToEmergencyVehicle_Town04_Route165_Weather7"
+    ]
+}

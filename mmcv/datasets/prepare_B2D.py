@@ -43,6 +43,12 @@ lefthand_ego_to_lidar = np.array([[ 0, 1, 0, 0],
 left2right = np.eye(4)
 left2right[1,1] = -1
 
+def remove_items_with_keys(keys_to_exclude, items):
+    return [
+        item for item in items
+        if all(key not in item for key in keys_to_exclude)
+    ]
+
 def apply_trans(vec,world2ego):
     vec = np.concatenate((vec,np.array([1])))
     t = world2ego @ vec
@@ -144,9 +150,14 @@ def get_action(index):
 	return throttle, steer, brake
 
 
-def gengrate_map(map_root):
+def gengrate_map(map_root, too_big_list:list=None):
     map_infos = {}
-    for file_name in os.listdir(map_root):
+
+    map_list = os.listdir(map_root)
+    if too_big_list is not None:
+        map_list = remove_items_with_keys(too_big_list, map_list)
+
+    for file_name in map_list:
         if '.npz' in file_name:
             map_info = dict(np.load(join(map_root,file_name), allow_pickle=True)['arr'])
             town_name = file_name.split('_')[0]
@@ -354,49 +365,86 @@ def preprocess(folder_list,idx,tmp_dir,train_or_val):
         pickle.dump(final_data,f)
 
 
-def generate_infos(folder_list,workers,train_or_val,tmp_dir):
-
+def generate_infos(folder_list, workers, train_or_val, tmp_dir):
     folder_num = len(folder_list)
-    devide_list = [(folder_num//workers)*i for i in range(workers)]
-    devide_list.append(folder_num)
-    for i in range(workers):
-        sub_folder_list = folder_list[devide_list[i]:devide_list[i+1]]
-        process = multiprocessing.Process(target=preprocess, args=(sub_folder_list,i,tmp_dir,train_or_val))
-        process.start()
-        process_list.append(process)
-    for i in range(workers):
-        process_list[i].join()
-    union_data = []
-    for i in range(workers):
-        with open(join(OUT_DIR,tmp_dir,'b2d_infos_'+train_or_val+'_'+str(i)+'.pkl'),'rb') as f:
+
+    if workers == 0:
+        # Single-threaded processing
+        preprocess(folder_list, 0, tmp_dir, train_or_val)
+        union_data = []
+        with open(join(OUT_DIR, tmp_dir, 'b2d_infos_' + train_or_val + '_0.pkl'), 'rb') as f:
             data = pickle.load(f)
         union_data.extend(data)
-    with open(join(OUT_DIR,'b2d_infos_'+train_or_val+'.pkl'),'wb') as f:
-        pickle.dump(union_data,f)
+        with open(join(OUT_DIR, 'b2d_infos_' + train_or_val + '.pkl'), 'wb') as f:
+            pickle.dump(union_data, f)
+    else:
+        # Multi-threaded processing
+        devide_list = [(folder_num // workers) * i for i in range(workers)]
+        devide_list.append(folder_num)
+
+        process_list = []
+        for i in range(workers):
+            sub_folder_list = folder_list[devide_list[i]:devide_list[i + 1]]
+            process = multiprocessing.Process(target=preprocess, args=(sub_folder_list, i, tmp_dir, train_or_val))
+            process.start()
+            process_list.append(process)
+
+        for process in process_list:
+            process.join()
+
+        union_data = []
+        for i in range(workers):
+            with open(join(OUT_DIR, tmp_dir, 'b2d_infos_' + train_or_val + '_' + str(i) + '.pkl'), 'rb') as f:
+                data = pickle.load(f)
+            union_data.extend(data)
+
+        with open(join(OUT_DIR, 'b2d_infos_' + train_or_val + '.pkl'), 'wb') as f:
+            pickle.dump(union_data, f)
+
 
 if __name__ == "__main__":
-
 
     os.makedirs(OUT_DIR,exist_ok=True)
     argparser = argparse.ArgumentParser(description=__doc__)
     argparser.add_argument('--workers',type=int, default= 4, help='num of workers to prepare dataset')
     argparser.add_argument('--tmp_dir', default="tmp_data", )
+    argparser.add_argument('--split', default="base", )
     args = argparser.parse_args()    
     workers = args.workers
     process_list = []
-    with open('../../data/splits/bench2drive_base_train_val_split.json','r') as f:
+    
+    if args.split == 'base':
+        parent_dir = 'v1'
+    elif args.split == 'mini':
+        parent_dir = 'mini'
+    else:
+        raise ValueError()
+
+    split_config = f'../../data/splits/bench2drive_{args.split}_train_val_split.json'
+    with open(split_config,'r') as f:
         train_val_split = json.load(f)
         
-    all_folder = os.listdir(join(DATAROOT,'v1'))
+    all_folder = os.listdir(join(DATAROOT,parent_dir))
+
     train_list = []
+    val_list = train_val_split['val']
+
     for foldername in all_folder:
-        if 'Town' in foldername and 'Route' in foldername and 'Weather' in foldername and not join('v1',foldername) in train_val_split['val']:
-            train_list.append(join('v1',foldername))   
+        if 'Town' in foldername and 'Route' in foldername and 'Weather' in foldername and not join(parent_dir,foldername) in val_list:
+            train_list.append(join(parent_dir,foldername))
+
+    # filter out large size map when uses mini dataset
+    too_big_list = None
+    if args.split == 'mini':
+        too_big_list = ['Town11', 'Town12', 'Town13']
+        train_list = remove_items_with_keys(too_big_list, train_list)
+        val_list = remove_items_with_keys(too_big_list, val_list)
+
     print('processing train data...')
     generate_infos(train_list,workers,'train',args.tmp_dir)
     process_list = []
     print('processing val data...')
-    generate_infos(train_val_split['val'],workers,'val',args.tmp_dir)
+    generate_infos(val_list,workers,'val',args.tmp_dir)
     print('processing map data...')
-    gengrate_map(MAP_ROOT)
+    gengrate_map(MAP_ROOT, too_big_list)
     print('finish!')
