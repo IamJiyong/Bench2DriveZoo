@@ -71,7 +71,8 @@ class LiDARInstance3DBoxes(BaseInstance3DBoxes):
         """
         # TODO: rotation_3d_in_axis function do not support
         #  empty tensor currently.
-        assert len(self.tensor) != 0
+        if len(self.tensor) == 0:
+            return self.tensor.new_zeros((0, 8, 3))
         dims = self.dims
         corners_norm = torch.from_numpy(
             np.stack(np.unravel_index(np.arange(8), [2] * 3), axis=1)).to(
@@ -91,7 +92,10 @@ class LiDARInstance3DBoxes(BaseInstance3DBoxes):
     def bev(self):
         """torch.Tensor: 2D BEV box of each box with rotation
         in XYWHR format."""
-        return self.tensor[:, [0, 1, 3, 4, 6]]
+        if len(self.tensor) == 0:
+            return self.tensor.new_zeros((0, 5))
+        else:
+            return self.tensor[:, [0, 1, 3, 4, 6]]
 
     @property
     def nearest_bev(self):

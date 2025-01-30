@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 import datetime
 import pathlib
 import time
@@ -392,6 +393,14 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         self.pid_metadata['throttle_traj'] = float(throttle_traj)
         self.pid_metadata['brake_traj'] = float(brake_traj)
         self.pid_metadata['plan'] = out_truck.tolist()
+
+        self.pred_metadata = {}
+        self.pred_metadata['boxes_corners'] = output_data_batch[0]['boxes_3d'].corners.cpu().numpy()
+        self.pred_metadata['boxes_bev'] = output_data_batch[0]['boxes_3d'].bev.cpu().numpy()
+        self.pred_metadata['scores'] = output_data_batch[0]['scores_3d'].cpu().numpy()
+        self.pred_metadata['trajectories'] = output_data_batch[0]['traj'][:-1,...,:2].cpu().numpy()
+        self.pred_metadata['traj_scores'] = output_data_batch[0]['traj_scores'][:-1].cpu().numpy()
+
         metric_info = self.get_metric_info()
         self.metric_info[self.step] = metric_info
         if SAVE_PATH is not None and self.step % 1 == 0:
@@ -408,14 +417,21 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         Image.fromarray(tick_data['imgs']['CAM_BACK_LEFT']).save(self.save_path / 'rgb_back_left' / ('%04d.png' % frame))
         Image.fromarray(tick_data['imgs']['CAM_BACK_RIGHT']).save(self.save_path / 'rgb_back_right' / ('%04d.png' % frame))
         Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
-        outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
-        json.dump(self.pid_metadata, outfile, indent=4)
-        outfile.close()
 
+        # save metadata
+        with open(self.save_path / 'meta' / ('%04d.json' % frame), 'w') as outfile_pid:
+            json.dump(self.pid_metadata, outfile_pid, indent=4)
+        with open(self.save_path / 'meta' / ('%04d_pred.pkl' % frame), 'wb') as outfile_pred:
+            pickle.dump(self.pred_metadata, outfile_pred)
+        
+        # TODO: save segmenation/occupancy map - Jiyong
+        if self._debug:
+            pass
+        
         # metric info
-        outfile = open(self.save_path / 'metric_info.json', 'w')
-        json.dump(self.metric_info, outfile, indent=4)
-        outfile.close()
+        outfile_pid = open(self.save_path / 'metric_info.json', 'w')
+        json.dump(self.metric_info, outfile_pid, indent=4)
+        outfile_pid.close()
 
     def destroy(self):
         del self.model
