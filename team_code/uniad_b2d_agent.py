@@ -424,9 +424,9 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         with open(self.save_path / 'meta' / ('%04d_pred.pkl' % frame), 'wb') as outfile_pred:
             pickle.dump(self.pred_metadata, outfile_pred)
         
-        # TODO: save segmenation/occupancy map - Jiyong
-        if self._debug:
-            pass
+        # # TODO: save segmenation/occupancy map - Jiyong
+        # if self._debug:
+        #     pass
         
         # metric info
         outfile_pid = open(self.save_path / 'metric_info.json', 'w')
